@@ -1,0 +1,35 @@
+● AgendamentoServiceTest
+  ✔ busca a agenda no intervalo [00:00 do dia, 00:00 do dia seguinte)
+  ✔ agenda em horário livre e salva com status AGENDADA
+  ✔ cancela com mais de 24h de antecedência
+  ✔ responde 'não encontrado' para médico inexistente
+  ✔ recusa cancelamento com menos de 24h e mantém a consulta AGENDADA
+  ✔ recusa cancelar a mesma consulta duas vezes
+  ✔ recusa sábado antes de consultar o banco (regra barata primeiro)
+  ✔ recusa horário de hoje que já passou (segunda 08:00, agora são 09:00)
+  ✔ recusa quando o médico já tem consulta no horário e não salva nada
+  ✔ recusa quando o paciente já tem consulta no horário (com outro médico)
+● ExpedienteTest
+  ✔ aceita 11:30 e 13:00, as bordas do almoço
+  ✔ aceita terça às 09:00 (caso mais simples)
+  ✔ aceita 08:00, o primeiro horário do dia
+  ✔ aceita 17:30, o último horário (termina às 18:00)
+  ✔ recusa 12:00 e 12:30, horário de almoço
+  ✔ recusa 07:30, antes da abertura
+  ✔ recusa sábado e domingo
+  ✔ recusa 09:15, fora da grade de 30 minutos
+  ✔ recusa 18:00, terminaria depois do fechamento
+  ✔ recusa 09:00:30, segundos fora da grade
+  ✔ recusa 23:30 — a consulta terminaria 00:00 e LocalTime 'dá a volta' na meia-noite
+● JanelaDeAgendamentoTest
+  ✔ aceita amanhã
+  ✔ aceita exatamente 60 dias à frente (borda inclusiva)
+  ✔ recusa exatamente agora — a consulta já estaria começando
+  ✔ recusa 60 dias e 30 minutos à frente
+  ✔ recusa ontem
+● PoliticaDeCancelamentoTest
+  ✔ permite cancelar com 48 horas de antecedência
+  ✔ permite cancelar com exatamente 24 horas (borda inclusiva)
+  ✔ recusa consulta que já aconteceu
+  ✔ recusa com 23h59 de antecedência
+Tests run: 30, Failures: 0

@@ -2,6 +2,8 @@ package br.com.agendasaude.agendamento;
 
 import br.com.agendasaude.cadastro.Medico;
 import br.com.agendasaude.cadastro.Paciente;
+import br.com.agendasaude.dominio.RegraDeNegocioException;
+import br.com.agendasaude.dominio.Violacao;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -52,6 +54,14 @@ public class Consulta {
         this.inicio = inicio;
         this.criadaEm = criadaEm;
         this.status = StatusConsulta.AGENDADA;
+    }
+
+    /** A checagem de antecedência é do serviço (depende do relógio); aqui só a transição de estado. */
+    public void cancelar() {
+        if (status == StatusConsulta.CANCELADA) {
+            throw new RegraDeNegocioException(Violacao.CONSULTA_JA_CANCELADA);
+        }
+        this.status = StatusConsulta.CANCELADA;
     }
 
     public Long getId() { return id; }
