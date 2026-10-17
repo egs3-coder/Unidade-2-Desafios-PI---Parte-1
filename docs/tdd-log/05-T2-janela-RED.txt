@@ -1,0 +1,19 @@
+● ExpedienteTest
+  ✔ aceita 11:30 e 13:00, as bordas do almoço
+  ✔ aceita terça às 09:00 (caso mais simples)
+  ✔ aceita 08:00, o primeiro horário do dia
+  ✔ aceita 17:30, o último horário (termina às 18:00)
+  ✔ recusa 12:00 e 12:30, horário de almoço
+  ✔ recusa 07:30, antes da abertura
+  ✔ recusa sábado e domingo
+  ✔ recusa 09:15, fora da grade de 30 minutos
+  ✔ recusa 18:00, terminaria depois do fechamento
+  ✔ recusa 09:00:30, segundos fora da grade
+  ✔ recusa 23:30 — a consulta terminaria 00:00 e LocalTime 'dá a volta' na meia-noite
+● JanelaDeAgendamentoTest
+  ✘ aceita amanhã  →  java.lang.AssertionError: unexpected exception: java.lang.UnsupportedOperationException: não implementado
+  ✘ aceita exatamente 60 dias à frente (borda inclusiva)  →  java.lang.AssertionError: unexpected exception: java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa exatamente agora — a consulta já estaria começando  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa 60 dias e 30 minutos à frente  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa ontem  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+Tests run: 16, Failures: 5
