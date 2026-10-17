@@ -1,0 +1,11 @@
+PostgreSQL 18.6
+  ✔ migração aplicada: V1__estrutura.sql
+  ✔ migração aplicada: V2__dados_iniciais.sql
+  ✔ 3 médicos iniciais
+  ✔ insere consulta AGENDADA
+  ✔ índice único barra 2º paciente no mesmo horário do médico → duplicate key value violates unique constraint "uk_consulta_medico_horario"
+  ✔ após cancelar, o horário fica livre (índice parcial)
+  ✔ índice único barra o paciente em dois médicos no mesmo horário
+  ✔ CHECK recusa status inválido
+  ✔ agenda do dia 21/10: 08:30, 10:00 (ordenada, sem cancelada, sem outro dia)
+  plano da consulta da agenda: Index Scan using ix_consulta_medico_inicio on consulta  (cost=0.15..8.17 rows=1 width=98) |   Index Cond: ((medico_id = 1) AND (inicio >= '2
