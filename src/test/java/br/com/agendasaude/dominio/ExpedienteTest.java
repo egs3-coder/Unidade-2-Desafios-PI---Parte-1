@@ -79,6 +79,13 @@ class ExpedienteTest {
     }
 
     @Test
+    @DisplayName("recusa 23:30 — a consulta terminaria 00:00 e LocalTime 'dá a volta' na meia-noite")
+    void recusaViradaDaMeiaNoite() {
+        // Achado na revisão do GREEN: 23:30 + 30 min = 00:00, que NÃO é depois de 18:00.
+        assertEquals(Violacao.FORA_DO_EXPEDIENTE, violacaoAo(terca(23, 30)));
+    }
+
+    @Test
     @DisplayName("recusa 09:15, fora da grade de 30 minutos")
     void recusaHorarioQuebrado() {
         assertEquals(Violacao.HORARIO_NAO_ALINHADO, violacaoAo(terca(9, 15)));
