@@ -1,0 +1,12 @@
+● ExpedienteTest
+  ✘ aceita 11:30 e 13:00, as bordas do almoço  →  java.lang.AssertionError: unexpected exception: java.lang.UnsupportedOperationException: não implementado
+  ✘ aceita terça às 09:00 (caso mais simples)  →  java.lang.AssertionError: unexpected exception: java.lang.UnsupportedOperationException: não implementado
+  ✘ aceita 08:00, o primeiro horário do dia  →  java.lang.AssertionError: unexpected exception: java.lang.UnsupportedOperationException: não implementado
+  ✘ aceita 17:30, o último horário (termina às 18:00)  →  java.lang.AssertionError: unexpected exception: java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa 12:00 e 12:30, horário de almoço  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa 07:30, antes da abertura  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa sábado e domingo  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa 09:15, fora da grade de 30 minutos  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa 18:00, terminaria depois do fechamento  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+  ✘ recusa 09:00:30, segundos fora da grade  →  java.lang.AssertionError: expected RegraDeNegocioException but got java.lang.UnsupportedOperationException: não implementado
+Tests run: 10, Failures: 10
