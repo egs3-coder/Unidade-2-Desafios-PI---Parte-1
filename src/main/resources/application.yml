@@ -1,0 +1,32 @@
+# Toda configuração que muda entre ambientes vem de variável de ambiente.
+# Os valores depois de ":" são padrões de desenvolvimento — nenhum segredo fica aqui.
+spring:
+  application:
+    name: agendasaude
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:agendasaude}
+    username: ${DB_USER:agendasaude}
+    password: ${DB_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # quem cria/altera tabelas é o Flyway, nunca o Hibernate
+  flyway:
+    enabled: true
+
+server:
+  port: ${PORT:8080}       # o Render injeta PORT; localmente fica 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  versao: ${APP_VERSION:dev}   # SHA do commit, gravado na imagem pela esteira
+  fuso: America/Sao_Paulo
