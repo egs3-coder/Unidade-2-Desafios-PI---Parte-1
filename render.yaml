@@ -1,0 +1,48 @@
+# Blueprint do Render (infraestrutura como código) — OPCIONAL.
+# Cria de uma vez o serviço web (que roda a imagem publicada pela esteira) e o PostgreSQL.
+# Painel do Render → New → Blueprint → escolha este repositório.
+# O passo a passo manual (sem Blueprint) está em docs/configurar-github-e-render.md.
+#
+# ⚠ Troque SEU-USUARIO/SEU-REPOSITORIO (minúsculas) antes de usar.
+# ⚠ O PostgreSQL gratuito do Render expira 30 dias após a criação (https://render.com/docs/free).
+
+services:
+  - type: web
+    runtime: image
+    name: agendasaude-api
+    plan: free
+    region: virginia                       # leste dos EUA: a região disponível mais próxima do Brasil
+    healthCheckPath: /actuator/health
+    image:
+      url: ghcr.io/SEU-USUARIO/SEU-REPOSITORIO:latest
+      # Se o pacote no GHCR for privado, cadastre uma credencial no Render e descomente:
+      # creds:
+      #   fromRegistryCreds:
+      #     name: ghcr-agendasaude
+    envVars:
+      - key: DB_HOST
+        sync: false                        # o Render pergunta na criação: "Hostname" interno do banco
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        fromDatabase:
+          name: agendasaude-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: agendasaude-db
+          property: user
+      - key: DB_PASSWORD                   # a senha nunca aparece no repositório
+        fromDatabase:
+          name: agendasaude-db
+          property: password
+      - key: JAVA_OPTS
+        value: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+
+databases:
+  - name: agendasaude-db
+    plan: free
+    region: virginia
+    databaseName: agendasaude
+    user: agendasaude
+    postgresMajorVersion: "17"             # mesma versão do compose e dos testes

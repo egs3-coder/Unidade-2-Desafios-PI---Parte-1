@@ -1,0 +1,197 @@
+# Esteira do AgendaSaúde: build → testes → imagem → deploy.
+#
+#   push em qualquer branch / pull request → jobs 1, 2 e 3 (a imagem é construída, mas não publicada)
+#   merge na main                          → jobs 1, 2, 3 e 4: publica a imagem no GHCR e faz deploy no Render
+#   "Run workflow" manual (rollback)       → só o job 5: publica de novo uma versão anterior
+#
+# Gates: cada job tem "needs" do anterior. Teste vermelho → os jobs seguintes são PULADOS → nada é publicado.
+
+name: CI/CD
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      versao:
+        description: "Rollback: SHA completo do commit a republicar (veja a aba Actions ou 'git log')"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Em branches de trabalho, um push novo cancela a execução antiga; na main, nunca.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  # ------------------------------------------------------------------ 1
+  unitarios:
+    name: "1 · Build e testes unitários"
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Compilar e rodar testes unitários (regras de negócio)
+        run: mvn -B -ntp test
+
+      - name: Resumo dos testes
+        if: always()
+        run: ./scripts/resumo-testes.sh target/surefire-reports "Testes unitários" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes-unitarios
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------ 2
+  integracao:
+    name: "2 · Testes de integração e aceitação (PostgreSQL real)"
+    needs: unitarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      # O runner do GitHub já tem Docker: o Testcontainers sobe um postgres:17-alpine por execução.
+      - name: Rodar *IT (integração com banco + aceitação por HTTP)
+        run: mvn -B -ntp verify -DskipUTs=true
+
+      - name: Resumo dos testes
+        if: always()
+        run: ./scripts/resumo-testes.sh target/failsafe-reports "Integração e aceitação" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar relatório
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-testes-integracao
+          path: target/failsafe-reports/
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------ 3
+  imagem:
+    name: "3 · Imagem Docker"
+    needs: integracao
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write          # para publicar no GitHub Container Registry
+    outputs:
+      imagem: ${{ steps.nome.outputs.imagem }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Nome da imagem (o GHCR exige minúsculas)
+        id: nome
+        run: echo "imagem=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login no GHCR (só na main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # O mesmo Dockerfile do E1. Fora da main a imagem é só construída (valida o Dockerfile);
+      # na main é publicada com duas tags: o SHA (imutável, usado no deploy/rollback) e latest.
+      - name: Build (e push na main)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+          build-args: GIT_SHA=${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          tags: |
+            ${{ steps.nome.outputs.imagem }}:${{ github.sha }}
+            ${{ steps.nome.outputs.imagem }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------ 4
+  deploy:
+    name: "4 · Deploy no Render + smoke test"
+    needs: imagem
+    # Só na main e só depois que o Render foi configurado (variável URL_PRODUCAO criada).
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.URL_PRODUCAO != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: producao
+      url: ${{ vars.URL_PRODUCAO }}
+    concurrency:
+      group: deploy-producao
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Disparar deploy da imagem deste commit
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          IMAGEM: ${{ needs.imagem.outputs.imagem }}:${{ github.sha }}
+        run: ./scripts/deploy-render.sh "$IMAGEM"
+
+      - name: Smoke test (a versão no ar é este commit?)
+        env:
+          URL_PRODUCAO: ${{ vars.URL_PRODUCAO }}
+        run: ./scripts/smoke-test.sh "$URL_PRODUCAO" "${{ github.sha }}"
+
+  # ------------------------------------------------------------------ 5
+  rollback:
+    name: "5 · Rollback para versão anterior"
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: producao
+      url: ${{ vars.URL_PRODUCAO }}
+    concurrency:
+      group: deploy-producao
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validar a versão informada
+        env:
+          VERSAO: ${{ inputs.versao }}
+        run: |
+          [[ "$VERSAO" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Informe o SHA completo (40 caracteres hexadecimais)."; exit 1; }
+
+      - name: Republicar a imagem dessa versão (já está no GHCR, não recompila)
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          VERSAO: ${{ inputs.versao }}
+        run: ./scripts/deploy-render.sh "ghcr.io/${GITHUB_REPOSITORY,,}:$VERSAO"
+
+      - name: Smoke test da versão restaurada
+        env:
+          URL_PRODUCAO: ${{ vars.URL_PRODUCAO }}
+          VERSAO: ${{ inputs.versao }}
+        run: ./scripts/smoke-test.sh "$URL_PRODUCAO" "$VERSAO"
