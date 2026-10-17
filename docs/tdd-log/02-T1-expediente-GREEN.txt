@@ -1,0 +1,12 @@
+● ExpedienteTest
+  ✔ aceita 11:30 e 13:00, as bordas do almoço
+  ✔ aceita terça às 09:00 (caso mais simples)
+  ✔ aceita 08:00, o primeiro horário do dia
+  ✔ aceita 17:30, o último horário (termina às 18:00)
+  ✔ recusa 12:00 e 12:30, horário de almoço
+  ✔ recusa 07:30, antes da abertura
+  ✔ recusa sábado e domingo
+  ✔ recusa 09:15, fora da grade de 30 minutos
+  ✔ recusa 18:00, terminaria depois do fechamento
+  ✔ recusa 09:00:30, segundos fora da grade
+Tests run: 10, Failures: 0
