@@ -1,0 +1,15 @@
+# Só pom.xml e src/ entram no contexto de build. Menos contexto = build mais rápido e
+# nenhum segredo (.env) ou histórico (.git) dentro da imagem por acidente.
+.git
+.github
+.env
+.env.*
+!.env.example
+target
+docs
+scripts
+*.md
+.idea
+.vscode
+compose.yaml
+render.yaml
